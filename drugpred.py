@@ -81,6 +81,14 @@ for field in fields:
 		print 'Field', field, ' does not exist in table', tb
 		sys.exit()
 
+#check environment variables
+
+if not os.environ.get('DockingScripts'):
+	print 'environment variable DockingScripts is not set'
+	sys.exit()
+elif not os.environ.get('DrugPred'):
+	print 'environment variable DockingScripts is not set'
+        sys.exit()
 
 
 
