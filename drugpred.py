@@ -164,7 +164,7 @@ else:
 	start_file.close()
 
 	os.system('chmod 744 '  + file_name)
-	command = 'qsub -q short ' + file_name
+	command = 'qsub -q short -lm 500000000000 ' + file_name
 	print command
 	os.system(command)
 
