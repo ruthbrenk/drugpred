@@ -142,6 +142,8 @@ os.system('dock.csh')
 
 os.chdir('../') #back to directory docking
 
+print 'finished docking'
+
 cursor.close()
 conn.close()
 
