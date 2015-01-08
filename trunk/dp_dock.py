@@ -101,9 +101,8 @@ while OEReadMolecule(ifs, mol):
 				#check if different chain and / or residue number
 				if res_number <> res_prop[0] or res_chain <> res_prop[1]:
 					#duplicate ligand entry
+					print 'WARNING!!!!!!!'
 					print 'Ligand', ligand, 'occurs twice in file'
-					print 'STOP!!!!!!!'
-					sys.exit()
 
 ifs.close()
 #check finished
