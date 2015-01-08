@@ -26,10 +26,10 @@ recombine_fragments           yes
 distance_tolerance            1.2
 nodes_maximum                 4
 nodes_minimum                 4
-ligand_binsize                0.3
-ligand_overlap                0.2
-receptor_binsize              0.3
-receptor_overlap              0.2
+ligand_binsize                0.5
+ligand_overlap                0.4
+receptor_binsize              0.5
+receptor_overlap              0.4
 bump_maximum                  1
 focus_cycles                  0
 focus_bump                    0
