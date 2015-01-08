@@ -93,42 +93,6 @@ elif not os.environ.get('DrugPred'):
 
 
 #---------------------------------
-def docking(id,prot):
-	os.mkdir(id)
-	os.chdir(id)
-	os.mkdir('docking')
-	os.chdir('docking')
-
-	command = 'cp ../../' + prot + '.pdb' + ' .'
-	print command
-	os.system(command)
-	#this script does the docking stuff
-	command = drugpred_path + 'dp_dock.py -db ' + db + ' -tb ' + tb + ' -user ' + us + ' -password '+ pw + ' -id ' + id 
-	print command
-	os.system(command)
-	os.chdir('../..')
-
-#---------------------------------
-def superligand(id):
-	os.chdir(id)
-	os.chdir('docking')
-	os.chdir('testing')
-	os.system('gunzip res.eel1.gz')
-	#calculate superligand
-	command = drugpred_path + 'superligand.py' 
-	print command
-	os.system(command)
-	os.chdir('../../..')	
-
-
-#---------------------------------
-def descriptors(id):
-	os.chdir(id)
-	os.chdir('docking')
-	command = drugpred_path + 'calculate_descriptors.py -db ' + db + ' -tb ' + tb + ' -user ' + us + ' -password '+ pw + ' -id ' + id + ' -dt ' + dt
-	print command
-	os.system(command)
-	os.chdir('../..')
 #---------------------------------
 
 #get to do from table
@@ -164,7 +128,7 @@ else:
 	start_file.close()
 
 	os.system('chmod 744 '  + file_name)
-	command = 'qsub -q short -lm 500000000000 ' + file_name
+	command = 'qsub -q long -lm 500000000000 ' + file_name
 	print command
 	os.system(command)
 

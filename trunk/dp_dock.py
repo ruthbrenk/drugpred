@@ -2,10 +2,13 @@
 # should convert pdb file to format required for docking, prepares also co-factor files
 #formerly known as setPDBatomsC.py
 #I think we need Protein plus co-factor + metal, ligand file (AK had more, keep an eye on these changes)
+#introduced check that ligand occurs only once in PDB file (RB)
 
-import os,sys,string
+import os,sys,string, os.path
 import string,os, sys, mysql
 import MySQLdb
+from openeye.oechem import *
+
 
 
 
@@ -16,9 +19,9 @@ import MySQLdb
 outhelp = 0
 if len(sys.argv) == 2 and sys.argv[1] == "--help":
 	outhelp = 1
-elif len(sys.argv) != 11:
+elif len(sys.argv) != 13:
 	outhelp = 1
-elif sys.argv[1] != "-db" or sys.argv[3] != "-tb" or sys.argv[5]  != "-user"  or sys.argv[7] != "-password" or sys.argv[9] != "-id":
+elif sys.argv[1] != "-db" or sys.argv[3] != "-tb" or sys.argv[5]  != "-dt" or sys.argv[7]  != "-user"  or sys.argv[9] != "-password" or sys.argv[11] != "-id":
 	outhelp = 1
 
 
@@ -39,9 +42,10 @@ drugpred_scripts = os.environ['DrugPred']
 
 db = str(sys.argv[2])
 tb = str(sys.argv[4])
-us = str(sys.argv[6])
-pw = str(sys.argv[8])
-id = str(sys.argv[10])
+dt = str(sys.argv[6])
+us = str(sys.argv[8])
+pw = str(sys.argv[10])
+id = str(sys.argv[12])
 
 conn=mysql.connect2server(pw, us, db)  			    
 cursor = conn.cursor ()
@@ -53,6 +57,16 @@ rows = cursor.fetchall ()
 
 prot = rows[0][0]
 print prot
+input_file_name = prot + '.pdb'
+#check if file exits
+if not os.path.isfile(input_file_name):
+	#file does not exist
+	print 'file ', input_file_name, ' does not exist' 
+	command = 'insert into ' + dt + ' (id, comment) values ( "' + id + '", "' + input_file_name + ' does not exist")'
+	#print command
+	cursor.execute(command)
+	conn.commit()
+	sys.exit()
 pdb_file = open(prot + '.pdb', 'r') #input file
 out_file_protein= open(prot + '_C.pdb','w') #output file
 out_file_protein_cofact= open(prot + '_cofac.pdb','w') #output file
@@ -68,6 +82,31 @@ print cofactor
 metal = str(rows[0][3])
 print metal
 
+#make sure that ligand appears only once in file
+ifs = oemolistream(prot + '.pdb')
+mol = OEGraphMol()
+while OEReadMolecule(ifs, mol):
+	res_prop = []
+	for atom in mol.GetAtoms():
+		thisRes = OEAtomGetResidue(atom)
+		res_name = thisRes.GetName()
+		if res_name == ligand:
+			#print res_name, thisRes.GetResidueNumber(), thisRes.GetChainID()
+			res_number = thisRes.GetResidueNumber()
+			res_chain = thisRes.GetChainID()
+			if len(res_prop) == 0:
+				#store information on chain and residue number
+				res_prop = [res_number, res_chain]
+			else:
+				#check if different chain and / or residue number
+				if res_number <> res_prop[0] or res_chain <> res_prop[1]:
+					#duplicate ligand entry
+					print 'Ligand', ligand, 'occurs twice in file'
+					print 'STOP!!!!!!!'
+					sys.exit()
+
+ifs.close()
+#check finished
 
 
 #HETATM 4666 ZN    ZN A 701      43.821  38.240  46.712  1.00 25.11          ZN  
