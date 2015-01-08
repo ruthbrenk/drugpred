@@ -27,7 +27,7 @@ def docking(id,prot):
 	print command
 	os.system(command)
 	#this script does the docking stuff
-	command = drugpred_path + 'dp_dock.py -db ' + db + ' -tb ' + tb + ' -user ' + us + ' -password '+ pw + ' -id ' + id 
+	command = drugpred_path + 'dp_dock.py -db ' + db + ' -tb ' + tb + ' -dt ' + dt + ' -user ' + us + ' -password '+ pw + ' -id ' + id 
 	print command
 	os.system(command)
 	os.chdir('../..')
@@ -63,4 +63,6 @@ superligand(id)
 
 #calculcate descriptors
 descriptors(id)
+
+print 'finished calculations!!!!!!!!!!'
 
