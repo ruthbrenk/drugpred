@@ -27,7 +27,6 @@ def gen_mol_list(cut_off):
 			if score <> vdw:
 				print 'total score <> vdw score <-------------------------------------------'
 				print i
-				break
 				
 			else:
 				ratio = vdw/nhvy
