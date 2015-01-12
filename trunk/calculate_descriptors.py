@@ -324,7 +324,6 @@ if score <= 0.50:
 elif score > 0.59:
 	prediction = 'druggable'
 
-sys.exit()
 
 # Upload descriptors into new format table
 
