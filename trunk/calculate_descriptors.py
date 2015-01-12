@@ -7,6 +7,11 @@ import mysql
 import MySQLdb
 
 
+#spicoli is buggy, if CL,BR,or I present in superligand (F seems to be fine) surface of atoms of superligand complex outside binding site changes!!!!
+#TO DO: set all superligand atoms to C
+#introduce check, that radius of first atom in prot file and sl complex is the same
+
+
 #*******************************************************************************
 # MAIN help
 #**********
@@ -70,6 +75,24 @@ if not OEReadMolecule(iprotfs,prot):
 	print "Protein file unreadable"
 	sys.exit(0)
 
+
+#Spicoli has problems with F,Br and I -> change to C
+
+super_lig_file = open("./testing/superligand.pdb", "r")
+lines = super_lig_file.readlines()
+super_lig_file.close()
+
+super_lig_new = open("./testing/superligand.pdb", "w")
+
+
+for line in lines:
+	if line.find("BR") <> -1 or  line.find("I") <> -1 or  line.find("CL") <> -1: #this will also change atoms of res xxIxxx, should not matter
+		line = line[0:12] + " C" + line[14:]
+	super_lig_new.write(line)
+
+super_lig_new.close()
+
+
 #### Call in protein-superligand complex
 command = 'cat ' + prot_cofac + ' ./testing/superligand.pdb > sl_' + prot_cofac
 os.system(command)
@@ -79,6 +102,7 @@ cplx = OEGraphMol()
 if not OEReadMolecule(icplxfs,cplx):
 	print "Complex file unreadable"
 	sys.exit(0)
+
 
 #### Print atomic accessibility for each of these
 
@@ -110,6 +134,9 @@ for i in range(surf.GetNumTriangles()):
 	atomareas[a2] += areas[i]/3.0
 	atomareas[a3] += areas[i]/3.0
 
+
+
+
 # PROTEIN-SUPERLIGAND COMPLEX
 OEAssignBondiVdWRadii(cplx)
 
@@ -138,6 +165,22 @@ for i in range(isurf.GetNumTriangles()):
 	iatomareas[a2] += iareas[i]/3.0
 	iatomareas[a3] += iareas[i]/3.0
 
+#check that diff of atoms outside binding site is 0, there is a bug in Spicoli
+
+for atom in prot.GetAtoms():
+	free_atom_area = atomareas[atom.GetIdx()]
+	#print "atom", atom.GetIdx(), "area = %2.4f" % free_atom_area
+	
+	cplx_atom = cplx.GetAtom(OEHasAtomIdx(atom.GetIdx()))
+	cplx_atom_area =  iatomareas[cplx_atom.GetIdx()]
+	#print "atom cplx", cplx_atom.GetIdx(), "area = %2.4f" % cplx_atom_area
+	if free_atom_area - cplx_atom_area <> 0:
+		print "WARNING: Surface area of first atom in protein changes upon complex formation. If this atom is not part of the binding site, this is a bug."
+	break #one check is enough
+	
+
+
+
 ### Calculate any SASA changes for every atom in protein when converted to complex
 
 backbone_atoms = ['N','CA','C','O']
@@ -151,6 +194,9 @@ sum_hydrophobicity_index = 0.0
 all_res = []
 haa_covered_res = []
 hiaa_covered_res = []
+
+mol = OEGraphMol()
+
 
 for atom in prot.GetAtoms():
 	idx = atom.GetIdx()
@@ -169,6 +215,7 @@ for atom in prot.GetAtoms():
 			deltasasa = atomareas[atom.GetIdx()] - iatomareas[iatom.GetIdx()]
 			if deltasasa <> 0.0:
 				#print idx, name, resname, resnum, deltasasa
+				mol.NewAtom(atom) #save atom do generate binding site 
 				sasa_total = sasa_total + deltasasa
 				if atom.GetAtomicNum() <= 6: # If it is not a Carbon or a Hydrogen, assume it to be polar.
 					hydrophobic_sasa_total = hydrophobic_sasa_total + deltasasa
@@ -184,6 +231,14 @@ for atom in prot.GetAtoms():
 					if resid not in hiaa_covered_res:
 						sum_hydrophobicity_index = sum_hydrophobicity_index + hydrophobicity_indices[resname]
 						hiaa_covered_res.append(resid)
+	else:
+		print 'something strange happened, atoms do not match'
+
+ofs = oemolostream() #save binding site 
+ofs.open('poc.pdb')
+OEWriteMolecule(ofs, mol)
+ofs.close()
+
 
 # CALCULATIONS FOR THE ENCLOSURE DESCRIPTOR
 # Calculate SASA change for superligand
@@ -268,6 +323,8 @@ if score <= 0.50:
 	prediction = 'less_druggable'
 elif score > 0.59:
 	prediction = 'druggable'
+
+sys.exit()
 
 # Upload descriptors into new format table
 
