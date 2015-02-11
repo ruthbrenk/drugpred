@@ -10,6 +10,7 @@ import MySQLdb
 #spicoli is buggy, if CL,BR,or I present in superligand (F seems to be fine) surface of atoms of superligand complex outside binding site changes!!!!
 #TO DO: set all superligand atoms to C
 #introduce check, that radius of first atom in prot file and sl complex is the same
+#added code to calculate aromatic SA and charged SA
 
 
 #*******************************************************************************
@@ -39,6 +40,8 @@ if outhelp == 1:
 hydrophobic_reslist = ['ALA', 'GLY', 'VAL', 'ILE', 'LEU', 'MET', 'PHE', 'PRO']
 hydrophobicity_indices = {'ALA':1.8, 'ARG':-4.5, 'ASN':-3.5, 'ASP':-3.5, 'CYS':2.5, 'GLN':-3.5, 'GLU':-3.5, 'GLY':-0.4, 'HIS':-3.2, 'ILE':4.5, 'LEU':3.8, 'LYS':-3.9, 'MET':1.9, 'PHE':2.8, 'PRO': -1.6, 'SER':-0.8, 'THR':-0.7, 'TRP':-0.9, 'TYR':-1.3, 'VAL':4.2}
 aa_residues = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']
+
+charged_atoms = ['OE1', 'OE2', 'NZ','OD1', 'OD2','NE','NH1','NH2','ZN','MG','CA','MN','FE','NI'] 
 
 ### Declare values for grid spacing and probe radius during surface area calculations
 
@@ -86,8 +89,11 @@ super_lig_new = open("./testing/superligand.pdb", "w")
 
 
 for line in lines:
-	if line.find("BR") <> -1 or  line.find("I") <> -1 or  line.find("CL") <> -1: #this will also change atoms of res xxIxxx, should not matter
+	#print line[76:78]
+	if line[12:13].find("BR") <> -1 or  line[12:13].find("I") <> -1 or  line[12:13].find("CL") <> -1: #this will also change atoms of res xxIxxx, should not matter
 		line = line[0:12] + " C" + line[14:]
+	elif line[76:78].find("BR") <> -1 or  line[76:78].find("I") <> -1 or  line[76:78].find("CL") <> -1: #PDB format if docking failed and org. ligand was kept, still does not work if halogen was is last line
+		line = line[0:76] + " C" + line[78:]
 	super_lig_new.write(line)
 
 super_lig_new.close()
@@ -175,7 +181,7 @@ for atom in prot.GetAtoms():
 	cplx_atom_area =  iatomareas[cplx_atom.GetIdx()]
 	#print "atom cplx", cplx_atom.GetIdx(), "area = %2.4f" % cplx_atom_area
 	if free_atom_area - cplx_atom_area <> 0:
-		print "WARNING: Surface area of first atom in protein changes upon complex formation. If this atom is not part of the binding site, this is a bug."
+		print "Warning: Surface area of first atom in protein changes upon complex formation. If this atom is not part of the binding site, this is a bug."
 	break #one check is enough
 	
 
@@ -189,6 +195,8 @@ num_res = 0
 hydrophobic_sasa_total = 0.0
 hydrophilic_sasa_total = 0.0
 sasa_total = 0.0
+aromatic_sasa_total = 0.0
+charged_sasa_total = 0.0
 sum_hydrophobicity_index = 0.0
 
 all_res = []
@@ -215,10 +223,17 @@ for atom in prot.GetAtoms():
 			deltasasa = atomareas[atom.GetIdx()] - iatomareas[iatom.GetIdx()]
 			if deltasasa <> 0.0:
 				#print idx, name, resname, resnum, deltasasa
-				mol.NewAtom(atom) #save atom do generate binding site 
+				mol.NewAtom(atom) #save atom to generate binding site 
+				#print atom.GetName(), atom.GetAtomicNum()
 				sasa_total = sasa_total + deltasasa
 				if atom.GetAtomicNum() <= 6: # If it is not a Carbon or a Hydrogen, assume it to be polar.
 					hydrophobic_sasa_total = hydrophobic_sasa_total + deltasasa
+				if atom.IsAromatic():
+					aromatic_sasa_total = aromatic_sasa_total  + deltasasa
+					#print 'aromatic', atom.GetName()
+				elif atom.GetName().strip() in charged_atoms and atom.GetAtomicNum() <>6 : #CA only for metal, not Carbon 
+					charged_sasa_total = charged_sasa_total + deltasasa
+					#print 'charged', atom.GetName()
 				resid = resname.strip()+str(resnum).strip()
 				if resid not in all_res:
 					all_res.append(resid)
@@ -309,8 +324,14 @@ hydrophilic_sasa_total = sasa_total-hsa_t
 psa_r = hydrophilic_sasa_total/sasa_total
 hiaa = sum_hydrophobicity_index/float(num_res)
 haa = num_apolar_res/float(num_res)
+
+asa = aromatic_sasa_total
+chsa = charged_sasa_total 
+asa_r = asa/csa
+chsa_r = chsa/csa
 print 'csa: ', csa, 'hsa_t: ', hsa_t, 'psa_r: ', psa_r, 'hiaa: ', hiaa, 'haa: ', haa
 print 'fsasa: ', fraction_sasa_change, 'dsasa: ', not_buried_sasa
+print 'asa: ', asa, 'asa_r: ', asa_r, 'chsa: ', chsa, 'chsa_r: ', chsa_r
 print -0.2*(psa_r/0.66), 0.16*(hsa_t/995.5), 0.11*(csa/1564.24), 0.22*(haa/0.67), 0.22*(hiaa/1.29), 1.3
 # Calculate score
 # The descriptors HAVE NOW BEEN NORMALIZED TO UNIT VARIANCE.
@@ -338,7 +359,7 @@ if len(label_exists) > 0:
 	print command
 	cursor.execute(command)
 
-command = "INSERT INTO " + dt + "  (id,csa,hsa_t,psa_r,hiaa,haa,dsasa,fsasa,score,prediction) values ( '" + id  + "',"  + str(csa) + "," + str(hsa_t) + "," + str(psa_r)  + "," + str(hiaa) + "," + str(haa) + "," + str(not_buried_sasa) + "," + str(fraction_sasa_change) + "," + str(score) + ",'" + prediction + "')"
+command = "INSERT INTO " + dt + "  (id,csa,hsa_t,psa_r,hiaa,haa,dsasa,fsasa,score,prediction,asa,asa_r,chsa,chsa_r) values ( '" + id  + "',"  + str(csa) + "," + str(hsa_t) + "," + str(psa_r)  + "," + str(hiaa) + "," + str(haa) + "," + str(not_buried_sasa) + "," + str(fraction_sasa_change) + "," + str(score) + ",'" + prediction + "'" + ","  + str(asa) + ","  + str(asa_r) + ","  + str(chsa) + ","  + str(chsa_r) + ")"
 print command
 cursor.execute(command)
 cursor.close ()

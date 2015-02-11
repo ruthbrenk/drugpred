@@ -32,6 +32,7 @@ def gen_mol_list(cut_off):
 				ratio = vdw/nhvy
 				if ratio <= cut_off:
 					mol_list.append(name)
+				#print name, ratio, vdw
 
 		else:
 			try:
@@ -51,6 +52,7 @@ def keep_pdb(mol_list,atom_cut_off):
 	for i in poses.readlines():
 		label = i[7:16]
 		if i[0:6] == 'REMARK' and label in mol_list:
+			#print 'consider', label
 			label = i[7:16]
 			#print label
 			start = True
@@ -71,10 +73,12 @@ def keep_pdb(mol_list,atom_cut_off):
 					dsquare = math.pow(atom_cut_off,2)
 					#print dsquare, 'here'
 					distance = math.pow(entry[0]-x,2) + math.pow(entry[1]-y,2) + math.pow(entry[2]-z,2)
+					#print distance
 					#print distance, 'distance'
 					if distance < dsquare: # compare square of distance, not distance.. Auri claims that this is computationally faster	
 						#atom is close to an existing atom -> reject
 						reject = True
+						#print reject
 						#print 'reject atom'
 						break #no need to compare the atom any further
 				if not reject:
@@ -87,7 +91,7 @@ def keep_pdb(mol_list,atom_cut_off):
 	superlig.close()
 
 	if not found:
-		print 'No atoms in superligand for this PDB Assuming pocket was too tight for docking Substituting superligand with original ligand'
+		print 'No atoms in superligand for this PDB Assuming pocket was too tight for docking. Substituting superligand with original ligand'
 		command = 'cp ../xtal-lig.pdb superligand.pdb'
 		os.system(command)
 
