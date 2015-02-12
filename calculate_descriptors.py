@@ -79,25 +79,6 @@ if not OEReadMolecule(iprotfs,prot):
 	sys.exit(0)
 
 
-#Spicoli has problems with F,Br and I -> change to C
-
-super_lig_file = open("./testing/superligand.pdb", "r")
-lines = super_lig_file.readlines()
-super_lig_file.close()
-
-super_lig_new = open("./testing/superligand.pdb", "w")
-
-
-for line in lines:
-	#print line[76:78]
-	if line[12:13].find("BR") <> -1 or  line[12:13].find("I") <> -1 or  line[12:13].find("CL") <> -1: #this will also change atoms of res xxIxxx, should not matter
-		line = line[0:12] + " C" + line[14:]
-	elif line[76:78].find("BR") <> -1 or  line[76:78].find("I") <> -1 or  line[76:78].find("CL") <> -1: #PDB format if docking failed and org. ligand was kept, still does not work if halogen was is last line
-		line = line[0:76] + " C" + line[78:]
-	super_lig_new.write(line)
-
-super_lig_new.close()
-
 
 #### Call in protein-superligand complex
 command = 'cat ' + prot_cofac + ' ./testing/superligand.pdb > sl_' + prot_cofac
