@@ -119,7 +119,7 @@ for line in lines:
 	#print line[76:78]
 	line = line.replace('CL',' C')
 	line = line.replace('BR',' C')
-	line = line.replace(' I',' C')
+	line = line.replace('I',' C')
 
 	#print line[76:78]
 	#if line[12:14].find("BR") <> -1 or  line[12:14].find("I") <> -1 or  line[12:14].find("CL") <> -1: #this will also change atoms of res xxIxxx, should not matter
