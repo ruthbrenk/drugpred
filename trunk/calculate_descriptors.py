@@ -5,6 +5,7 @@ from openeye.oechem import *
 from openeye.oespicoli import *
 import mysql
 import MySQLdb
+from math import degrees
 
 
 #spicoli is buggy, if CL,BR,or I present in superligand (F seems to be fine) surface of atoms of superligand complex outside binding site changes!!!!
@@ -33,6 +34,25 @@ if outhelp == 1:
 	print "         -db [data base] -tb [data table] -user [username db] -password [password] -id [id] -dt [descriptor table]"
 
 	sys.exit()
+
+
+#-------------------------------------------------
+def donor_acceptor(atom,superligand,prot):
+	hbond = False
+	for neighbour in atom.GetAtoms():
+		break #only need one atom
+	for sl_atom in superligand.GetAtoms():
+		if OEGetDistance(superligand,sl_atom,prot,atom) <3.5: #distance for H bond
+			angle = degrees(OEGetAngle(prot,neighbour,prot,atom,superligand,sl_atom))
+			#print angle
+			if angle > 90: #H bond
+				hbond = True
+				break
+
+	#print 'here'
+	return hbond	
+
+#-------------------------------------------------
 
 
 ### Declare list of hydrophobic residues and hydrophobicity index dictionary
@@ -88,6 +108,14 @@ cplx = OEGraphMol()
 
 if not OEReadMolecule(icplxfs,cplx):
 	print "Complex file unreadable"
+	sys.exit(0)
+
+
+#read superligand
+superligand_file = oemolistream('./testing/superligand.pdb')
+superligand = OEGraphMol()
+if not OEReadMolecule(superligand_file,superligand):
+	print "Superligand file unreadable"
 	sys.exit(0)
 
 
@@ -179,6 +207,7 @@ sasa_total = 0.0
 aromatic_sasa_total = 0.0
 charged_sasa_total = 0.0
 sum_hydrophobicity_index = 0.0
+don_acc_sasa = 0.0
 
 all_res = []
 haa_covered_res = []
@@ -209,6 +238,9 @@ for atom in prot.GetAtoms():
 				sasa_total = sasa_total + deltasasa
 				if atom.GetAtomicNum() <= 6: # If it is not a Carbon or a Hydrogen, assume it to be polar.
 					hydrophobic_sasa_total = hydrophobic_sasa_total + deltasasa
+				elif (atom.GetAtomicNum() == 7 or atom.GetAtomicNum() == 8): #nitrogen or oxygen
+					if donor_acceptor(atom,superligand,prot): #check if atom can act as donor or acceptor
+						don_acc_sasa = don_acc_sasa + deltasasa
 				if atom.IsAromatic():
 					aromatic_sasa_total = aromatic_sasa_total  + deltasasa
 					#print 'aromatic', atom.GetName()
@@ -303,6 +335,7 @@ csa = sasa_total
 hsa_t = hydrophobic_sasa_total
 hydrophilic_sasa_total = sasa_total-hsa_t
 psa_r = hydrophilic_sasa_total/sasa_total
+psa_don_acc_r = don_acc_sasa / sasa_total
 hiaa = sum_hydrophobicity_index/float(num_res)
 haa = num_apolar_res/float(num_res)
 
@@ -312,7 +345,7 @@ asa_r = asa/csa
 chsa_r = chsa/csa
 print 'csa: ', csa, 'hsa_t: ', hsa_t, 'psa_r: ', psa_r, 'hiaa: ', hiaa, 'haa: ', haa
 print 'fsasa: ', fraction_sasa_change, 'dsasa: ', not_buried_sasa
-print 'asa: ', asa, 'asa_r: ', asa_r, 'chsa: ', chsa, 'chsa_r: ', chsa_r
+print 'asa: ', asa, 'asa_r: ', asa_r, 'chsa: ', chsa, 'chsa_r: ', chsa_r, 'psa_don_acc_r: ', psa_don_acc_r
 print -0.2*(psa_r/0.66), 0.16*(hsa_t/995.5), 0.11*(csa/1564.24), 0.22*(haa/0.67), 0.22*(hiaa/1.29), 1.3
 # Calculate score
 # The descriptors HAVE NOW BEEN NORMALIZED TO UNIT VARIANCE.
@@ -340,7 +373,7 @@ if len(label_exists) > 0:
 	print command
 	cursor.execute(command)
 
-command = "INSERT INTO " + dt + "  (id,csa,hsa_t,psa_r,hiaa,haa,dsasa,fsasa,score,prediction,asa,asa_r,chsa,chsa_r) values ( '" + id  + "',"  + str(csa) + "," + str(hsa_t) + "," + str(psa_r)  + "," + str(hiaa) + "," + str(haa) + "," + str(not_buried_sasa) + "," + str(fraction_sasa_change) + "," + str(score) + ",'" + prediction + "'" + ","  + str(asa) + ","  + str(asa_r) + ","  + str(chsa) + ","  + str(chsa_r) + ")"
+command = "INSERT INTO " + dt + "  (id,csa,hsa_t,psa_r,hiaa,haa,dsasa,fsasa,score,prediction,asa,asa_r,chsa,chsa_r,psa_don_acc_r) values ( '" + id  + "',"  + str(csa) + "," + str(hsa_t) + "," + str(psa_r)  + "," + str(hiaa) + "," + str(haa) + "," + str(not_buried_sasa) + "," + str(fraction_sasa_change) + "," + str(score) + ",'" + prediction + "'" + ","  + str(asa) + ","  + str(asa_r) + ","  + str(chsa) + ","  + str(chsa_r)  + ","  + str(psa_don_acc_r)+ ")"
 print command
 cursor.execute(command)
 cursor.close ()
