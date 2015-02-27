@@ -38,6 +38,7 @@ if outhelp == 1:
 
 #-------------------------------------------------
 def donor_acceptor(atom,superligand,prot):
+
 	hbond = False
 	for neighbour in atom.GetAtoms():
 		break #only need one atom
@@ -61,7 +62,7 @@ hydrophobic_reslist = ['ALA', 'GLY', 'VAL', 'ILE', 'LEU', 'MET', 'PHE', 'PRO']
 hydrophobicity_indices = {'ALA':1.8, 'ARG':-4.5, 'ASN':-3.5, 'ASP':-3.5, 'CYS':2.5, 'GLN':-3.5, 'GLU':-3.5, 'GLY':-0.4, 'HIS':-3.2, 'ILE':4.5, 'LEU':3.8, 'LYS':-3.9, 'MET':1.9, 'PHE':2.8, 'PRO': -1.6, 'SER':-0.8, 'THR':-0.7, 'TRP':-0.9, 'TYR':-1.3, 'VAL':4.2}
 aa_residues = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']
 
-charged_atoms = ['OE1', 'OE2', 'NZ','OD1', 'OD2','NE','NH1','NH2','ZN','MG','CA','MN','FE','NI'] 
+charged_atoms = ['OE1', 'OE2', 'NZ','OD1', 'OD2','NE','NH1','NH2','ZN','MG','CA','MN','FE','NI','OP1','OP2'] 
 
 ### Declare values for grid spacing and probe radius during surface area calculations
 
@@ -214,7 +215,7 @@ haa_covered_res = []
 hiaa_covered_res = []
 
 mol = OEGraphMol()
-
+don_acc_mol = OEGraphMol()
 
 for atom in prot.GetAtoms():
 	idx = atom.GetIdx()
@@ -241,6 +242,7 @@ for atom in prot.GetAtoms():
 				elif (atom.GetAtomicNum() == 7 or atom.GetAtomicNum() == 8): #nitrogen or oxygen
 					if donor_acceptor(atom,superligand,prot): #check if atom can act as donor or acceptor
 						don_acc_sasa = don_acc_sasa + deltasasa
+						don_acc_mol.NewAtom(atom)
 				if atom.IsAromatic():
 					aromatic_sasa_total = aromatic_sasa_total  + deltasasa
 					#print 'aromatic', atom.GetName()
@@ -265,6 +267,11 @@ for atom in prot.GetAtoms():
 ofs = oemolostream() #save binding site 
 ofs.open('poc.pdb')
 OEWriteMolecule(ofs, mol)
+ofs.close()
+
+ofs = oemolostream() #save don_acc_atoms
+ofs.open('don_acc.pdb')
+OEWriteMolecule(ofs,don_acc_mol)
 ofs.close()
 
 
