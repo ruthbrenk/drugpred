@@ -35,23 +35,24 @@ if outhelp == 1:
 
 	sys.exit()
 
-
 #-------------------------------------------------
 def donor_acceptor(atom,superligand,prot):
 
 	hbond = False
+	angle = 0.0
 	for neighbour in atom.GetAtoms():
 		break #only need one atom
 	for sl_atom in superligand.GetAtoms():
-		if OEGetDistance(superligand,sl_atom,prot,atom) <3.5: #distance for H bond
-			angle = degrees(OEGetAngle(prot,neighbour,prot,atom,superligand,sl_atom))
-			#print angle
-			if angle > 90: #H bond
+			if OEGetDistance(superligand,sl_atom,prot,atom) <3.3: # distance for H bond
+				 angle = degrees(OEGetAngle(prot,neighbour,prot,atom,superligand,sl_atom))
+		
+			if angle > 105: #H bond
+				#print angle
 				hbond = True
 				break
 
 	#print 'here'
-	return hbond	
+	return hbond,angle	
 
 #-------------------------------------------------
 
@@ -240,8 +241,12 @@ for atom in prot.GetAtoms():
 				if atom.GetAtomicNum() <= 6: # If it is not a Carbon or a Hydrogen, assume it to be polar.
 					hydrophobic_sasa_total = hydrophobic_sasa_total + deltasasa
 				elif (atom.GetAtomicNum() == 7 or atom.GetAtomicNum() == 8): #nitrogen or oxygen
-					if donor_acceptor(atom,superligand,prot): #check if atom can act as donor or acceptor
+					acc_don_found,angle =  donor_acceptor(atom,superligand,prot) #check if atom can act as donor or acceptor
+					if acc_don_found:
 						don_acc_sasa = don_acc_sasa + deltasasa
+						atom.SetPartialCharge(int(angle))
+						atom.SetImplicitHCount(0) #otherwise they will be added to the don_acc file when written as mol2
+						#print '-> ', atom.GetPartialCharge()
 						don_acc_mol.NewAtom(atom)
 				if atom.IsAromatic():
 					aromatic_sasa_total = aromatic_sasa_total  + deltasasa
@@ -270,7 +275,7 @@ OEWriteMolecule(ofs, mol)
 ofs.close()
 
 ofs = oemolostream() #save don_acc_atoms
-ofs.open('don_acc.pdb')
+ofs.open('don_acc.mol2')
 OEWriteMolecule(ofs,don_acc_mol)
 ofs.close()
 
