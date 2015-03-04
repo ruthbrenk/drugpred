@@ -43,13 +43,16 @@ def donor_acceptor(atom,superligand,prot):
 	for neighbour in atom.GetAtoms():
 		break #only need one atom
 	for sl_atom in superligand.GetAtoms():
-			if OEGetDistance(superligand,sl_atom,prot,atom) <3.3: # distance for H bond
-				 angle = degrees(OEGetAngle(prot,neighbour,prot,atom,superligand,sl_atom))
-		
-			if angle > 105: #H bond
-				#print angle
+			angle = degrees(OEGetAngle(prot,neighbour,prot,atom,superligand,sl_atom))
+			#print angle
+			if angle > 165: #vector is pointing into binding site -> keep
 				hbond = True
 				break
+			elif OEGetDistance(superligand,sl_atom,prot,atom) <3.3: # distance for H bond
+					if angle > 105: #H bond
+						#print angle
+						hbond = True
+						break
 
 	#print 'here'
 	return hbond,angle	
