@@ -43,16 +43,12 @@ def donor_acceptor(atom,superligand,prot):
 	for neighbour in atom.GetAtoms():
 		break #only need one atom
 	for sl_atom in superligand.GetAtoms():
-			angle = degrees(OEGetAngle(prot,neighbour,prot,atom,superligand,sl_atom))
-			#print angle
-			if angle > 165: #vector is pointing into binding site -> keep
-				hbond = True
-				break
-			elif OEGetDistance(superligand,sl_atom,prot,atom) <3.3: # distance for H bond
-					if angle > 105: #H bond
+			if OEGetDistance(superligand,sl_atom,prot,atom) <3.3: # distance for H bond
+				angle = degrees(OEGetAngle(prot,neighbour,prot,atom,superligand,sl_atom))
+				if angle > 115: #H bond
 						#print angle
-						hbond = True
-						break
+					hbond = True
+					break
 
 	#print 'here'
 	return hbond,angle	
@@ -241,16 +237,28 @@ for atom in prot.GetAtoms():
 				mol.NewAtom(atom) #save atom to generate binding site 
 				#print atom.GetName(), atom.GetAtomicNum()
 				sasa_total = sasa_total + deltasasa
-				if atom.GetAtomicNum() <= 6: # If it is not a Carbon or a Hydrogen, assume it to be polar.
+				if atom.GetAtomicNum() <= 6: # Carbon atom, hydrophobic.
 					hydrophobic_sasa_total = hydrophobic_sasa_total + deltasasa
 				elif (atom.GetAtomicNum() == 7 or atom.GetAtomicNum() == 8): #nitrogen or oxygen
-					acc_don_found,angle =  donor_acceptor(atom,superligand,prot) #check if atom can act as donor or acceptor
-					if acc_don_found:
+					#for aromatic N plus N and O attached to bases -> check H-bond orientation
+					for nbr in atom.GetAtoms(): #get neighbour, needed for bases
+						break #only need one atom
+					#print atom.GetDegree(), atom.GetAtomicNum()
+					if (atom.IsInRing() and atom.GetAtomicNum() == 7) or (nbr.IsInRing() and atom.GetDegree() == 1):
+					   #(Nitrogen in Ring (oxygen not always relevant, suggar for RNA)) or (neighbour atom is in ring, should only be the case for bases and double bond (excludes Tyr))					
+					  	 acc_don_found,angle =  donor_acceptor(atom,superligand,prot) #check if atom can act as donor or acceptor
+					 	 if acc_don_found:
+							don_acc_sasa = don_acc_sasa + deltasasa
+							atom.SetPartialCharge(int(angle))
+							atom.SetImplicitHCount(0) #otherwise they will be added to the don_acc file when written as mol2
+							#print '-> ', atom.GetPartialCharge()
+							don_acc_mol.NewAtom(atom)
+					else: #N or O but not part of base or in heterocycle -> keep always
 						don_acc_sasa = don_acc_sasa + deltasasa
-						atom.SetPartialCharge(int(angle))
+						atom.SetPartialCharge(0)
 						atom.SetImplicitHCount(0) #otherwise they will be added to the don_acc file when written as mol2
-						#print '-> ', atom.GetPartialCharge()
 						don_acc_mol.NewAtom(atom)
+
 				if atom.IsAromatic():
 					aromatic_sasa_total = aromatic_sasa_total  + deltasasa
 					#print 'aromatic', atom.GetName()
