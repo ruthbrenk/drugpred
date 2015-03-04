@@ -218,7 +218,6 @@ hiaa_covered_res = []
 
 mol = OEGraphMol()
 don_acc_mol = OEGraphMol()
-test_mol = OEGraphMol()
 
 for atom in prot.GetAtoms():
 	idx = atom.GetIdx()
@@ -255,7 +254,6 @@ for atom in prot.GetAtoms():
 						#print atom.IsInRing(), OEAtomIsInRingSize(atom, 5),  OEAtomIsInRingSize(atom, 6),  OEAtomGetSmallestRingSize(atom)
 						#print nbr.IsInRing()
 						acc_don_found,angle =  donor_acceptor(atom,superligand,prot) #check if atom can act as donor or acceptor
-						test_mol.NewAtom(atom)
 					 	if acc_don_found:
 							don_acc_sasa = don_acc_sasa + deltasasa
 							atom.SetPartialCharge(int(angle))
@@ -269,6 +267,11 @@ for atom in prot.GetAtoms():
 						atom.SetImplicitHCount(0) #otherwise they will be added to the don_acc file when written as mol2
 						don_acc_mol.NewAtom(atom)
 						#print 'keep N or O'
+				elif (atom.GetAtomicNum() == 16): #sulfur
+					don_acc_sasa = don_acc_sasa + deltasasa
+					atom.SetPartialCharge(0)
+					atom.SetImplicitHCount(0) #otherwise they will be added to the don_acc file when written as mol2
+					don_acc_mol.NewAtom(atom)
 
 				if atom.IsAromatic():
 					aromatic_sasa_total = aromatic_sasa_total  + deltasasa
@@ -301,10 +304,7 @@ ofs.open('don_acc.mol2')
 OEWriteMolecule(ofs,don_acc_mol)
 ofs.close()
 
-ofs = oemolostream() #save temp mol
-ofs.open('tmp.pdb')
-OEWriteMolecule(ofs,test_mol)
-ofs.close()
+
 
 
 # CALCULATIONS FOR THE ENCLOSURE DESCRIPTOR
