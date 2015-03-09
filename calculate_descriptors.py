@@ -43,7 +43,7 @@ def donor_acceptor(atom,superligand,prot):
 	for neighbour in atom.GetAtoms():
 		break #only need one atom
 	for sl_atom in superligand.GetAtoms():
-			if OEGetDistance(superligand,sl_atom,prot,atom) <3.3: # distance for H bond
+			if OEGetDistance(superligand,sl_atom,prot,atom) <3.4: # distance for H bond
 				angle = degrees(OEGetAngle(prot,neighbour,prot,atom,superligand,sl_atom))
 				if angle > 115: #H bond
 						#print angle
@@ -389,6 +389,7 @@ chsa_r = chsa/csa
 print 'csa: ', csa, 'hsa_t: ', hsa_t, 'psa_r: ', psa_r, 'hiaa: ', hiaa, 'haa: ', haa
 print 'fsasa: ', fraction_sasa_change, 'dsasa: ', not_buried_sasa
 print 'asa: ', asa, 'asa_r: ', asa_r, 'chsa: ', chsa, 'chsa_r: ', chsa_r, 'psa_don_acc_r: ', psa_don_acc_r
+print 'aliphat_aromat_t', hsa_plus_aromatic_t
 print -0.2*(psa_r/0.66), 0.16*(hsa_t/995.5), 0.11*(csa/1564.24), 0.22*(haa/0.67), 0.22*(hiaa/1.29), 1.3
 # Calculate score
 # The descriptors HAVE NOW BEEN NORMALIZED TO UNIT VARIANCE.
