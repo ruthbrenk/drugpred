@@ -29,7 +29,7 @@ elif sys.argv[1] != "-db" or sys.argv[3] != "-tb" or sys.argv[5]  != "-user"  or
 
 if outhelp == 1:
 	print "*** Script to calculate descriptos ***\n"
-	print "Written by Agata Krasowski, Auri and RB\n"
+	print "Written by Agata Krasowski, Auri and RB\ drug_pred.test_descriptors_0405_bins_new_desn"
 	print "Usage:   --help shows this help"
 	print "         -db [data base] -tb [data table] -user [username db] -password [password] -id [id] -dt [descriptor table]"
 
@@ -211,6 +211,7 @@ aromatic_sasa_total = 0.0
 charged_sasa_total = 0.0
 sum_hydrophobicity_index = 0.0
 don_acc_sasa = 0.0
+aromatic_N_O_sasa = 0.0
 
 all_res = []
 haa_covered_res = []
@@ -261,6 +262,8 @@ for atom in prot.GetAtoms():
 							#print '-> ', atom.GetPartialCharge()
 							don_acc_mol.NewAtom(atom)
 							#print 'h bond'
+						else:  #is rather aromatic N or O
+							aromatic_N_O_sasa = aromatic_N_O_sasa + deltasasa
 					else: #N or O but not part of base or in heterocycle -> keep always
 						don_acc_sasa = don_acc_sasa + deltasasa
 						atom.SetPartialCharge(0)
@@ -372,6 +375,7 @@ not_buried_sasa = superligand_sasa_total - superligand_delta_sasa_total
 
 csa = sasa_total
 hsa_t = hydrophobic_sasa_total
+hsa_plus_aromatic_t = aromatic_N_O_sasa + hsa_t
 hydrophilic_sasa_total = sasa_total-hsa_t
 psa_r = hydrophilic_sasa_total/sasa_total
 psa_don_acc_r = don_acc_sasa / sasa_total
@@ -412,7 +416,7 @@ if len(label_exists) > 0:
 	print command
 	cursor.execute(command)
 
-command = "INSERT INTO " + dt + "  (id,csa,hsa_t,psa_r,hiaa,haa,dsasa,fsasa,score,prediction,asa,asa_r,chsa,chsa_r,psa_don_acc_r) values ( '" + id  + "',"  + str(csa) + "," + str(hsa_t) + "," + str(psa_r)  + "," + str(hiaa) + "," + str(haa) + "," + str(not_buried_sasa) + "," + str(fraction_sasa_change) + "," + str(score) + ",'" + prediction + "'" + ","  + str(asa) + ","  + str(asa_r) + ","  + str(chsa) + ","  + str(chsa_r)  + ","  + str(psa_don_acc_r)+ ")"
+command = "INSERT INTO " + dt + "  (id,csa,hsa_t,psa_r,hiaa,haa,dsasa,fsasa,score,prediction,asa,asa_r,chsa,chsa_r,psa_don_acc_r,aliphat_aromat_t) values ( '" + id  + "',"  + str(csa) + "," + str(hsa_t) + "," + str(psa_r)  + "," + str(hiaa) + "," + str(haa) + "," + str(not_buried_sasa) + "," + str(fraction_sasa_change) + "," + str(score) + ",'" + prediction + "'" + ","  + str(asa) + ","  + str(asa_r) + ","  + str(chsa) + ","  + str(chsa_r)  + ","  + str(psa_don_acc_r)+ ","  + str(hsa_plus_aromatic_t)+")"
 print command
 cursor.execute(command)
 cursor.close ()
