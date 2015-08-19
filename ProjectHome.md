@@ -1,0 +1,1 @@
+Scripts needed to make druggability predictions using DrugPred
